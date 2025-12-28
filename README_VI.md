@@ -93,18 +93,13 @@ Một cấu hình desktop Wayland hoàn chỉnh, **đã được kiểm nghiệm
 
 ## 💻 Yêu Cầu Hệ Thống
 
-### Yêu Cầu Tối Thiểu
-- **Hệ điều hành**: CachyOS (phiên bản mới nhất)
-- **CPU**: AMD Ryzen 5000+ series hoặc Intel thế hệ 10+
-- **GPU**: NVIDIA GTX 1000+ series hoặc AMD RX 5000+
-- **RAM**: 16GB DDR4
-- **Ổ cứng**: 50GB dung lượng trống (khuyến nghị 100GB+ cho AI/ML)
-
 ### Tối Ưu Cho
+- **Hệ điều hành**: CachyOS (phiên bản mới nhất)
 - **Bo mạch chủ**: ROG STRIX B550-XE GAMING WIFI
 - **CPU**: AMD Ryzen 7 5800X (8C/16T)
 - **GPU**: NVIDIA RTX 3060 12GB
 - **RAM**: 32GB+ DDR4
+- **Ổ cứng**: 50GB dung lượng trống (khuyến nghị 100GB+ cho AI/ML)
 
 ---
 

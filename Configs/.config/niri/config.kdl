@@ -32,12 +32,14 @@ output "DP-1" {
     mode "2560x1080@99.94"
     position x=0 y=0
     scale 1.0
+    variable-refresh-rate on
 }
 
 output "DP-3" {
     mode "1920x1080@74.97"
     position x=2560 y=0
     scale 1.0
+    variable-refresh-rate on
 }
 
 // ################ Layout ################
@@ -195,7 +197,7 @@ window-rule {
 }
 
 window-rule {
-    match app-id="code-oss|[Cc]ode|codium|code-url-handler|code-insiders-url-handler"
+    match app-id="code-oss|[Cc]ode|codium|code-url-handler|code-insiders-url-handler|rider"
     opacity 0.80
     draw-border-with-background false
 }
@@ -266,6 +268,7 @@ binds {
     Mod+T { spawn "kitty"; }
     Mod+W { spawn "microsoft-edge-stable"; }
     Mod+C { spawn "codium"; }
+    Mod+B { spawn "rider"; }
     Mod+E { spawn "thunar"; }
     Mod+Alt+E { spawn "nemo"; }
     Mod+G { spawn "github-desktop"; }
@@ -407,6 +410,6 @@ binds {
 
 // ################ Debug ################
 debug {
-    wait-for-frame-completion-before-queueing
+    //wait-for-frame-completion-before-queueing
     render-drm-device "/dev/dri/renderD128"
 }

@@ -93,18 +93,13 @@ A complete, **production-tested** Wayland desktop configuration specifically eng
 
 ## 💻 System Requirements
 
-### Minimum Requirements
-- **OS**: CachyOS (latest)
-- **CPU**: AMD Ryzen 5000+ series or Intel 10th gen+
-- **GPU**: NVIDIA GTX 1000+ series or AMD RX 5000+
-- **RAM**: 16GB DDR4
-- **Storage**: 50GB free space (100GB+ recommended for AI/ML)
-
 ### Optimized For
+- **OS**: CachyOS (latest)
 - **Motherboard**: ROG STRIX B550-XE GAMING WIFI
 - **CPU**: AMD Ryzen 7 5800X (8C/16T)
 - **GPU**: NVIDIA RTX 3060 12GB
 - **RAM**: 32GB+ DDR4
+- **Storage**: 50GB free space (100GB+ recommended for AI/ML)
 
 ---
 
