@@ -8,6 +8,7 @@ readonly GREEN='\e[38;2;0;255;0m'      # Xanh lá thuần
 readonly YELLOW='\e[38;2;255;255;0m'   # Vàng thuần
 readonly MAGENTA='\e[38;2;234;0;255m'  # Hồng tím
 readonly CYAN='\e[38;2;0;255;255m'     # Xanh lơ
+readonly BLUE='\e[38;2;0;191;255m'     # Xanh dương
 readonly NC='\e[0m'                    # Reset màu
 
 LOG_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
