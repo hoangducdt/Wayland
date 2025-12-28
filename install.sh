@@ -76,7 +76,7 @@ setup_directories() {
         return 0
     fi
     
-    log "Creating directories & downloading wallpapers..."
+    log "Creating directories..."
     
     mkdir -p "$STATE_DIR" "$BACKUP_DIR"
     mkdir -p "$HOME"/{Desktop,Documents,Downloads,Music,Videos,OneDrive}
@@ -98,8 +98,8 @@ setup_directories() {
     mkdir -p "$HOME/.config/qt5ct"
     mkdir -p "$HOME/.config/qt6ct"
     
-    mkdir -p "/var/lib/AccountsService/users"
-    mkdir -p "/usr/lib/asf/www"
+    sudo mkdir -p "/var/lib/AccountsService/users"
+    sudo mkdir -p "/usr/lib/asf/www"
 
     if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
         mkdir -p "$HOME/.config/DankMaterialShell"
