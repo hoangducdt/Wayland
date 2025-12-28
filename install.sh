@@ -1605,8 +1605,8 @@ setup_symlink(){
     log "Applying special configurations..."
 
     if [ -d "$HOME/.config" ]; then
-        find "$HOME/.config" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
-    fi
+	    find -L "$HOME/.config" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+	fi
 
     mark_completed "symlink"
     log "✓ All Symlink files have been successfully configured."
