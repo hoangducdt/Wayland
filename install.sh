@@ -13,13 +13,15 @@ readonly NC='\e[0m'                    # Reset màu
 
 LOG_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-readonly LOG="$HOME/setup_complete_${LOG_TIMESTAMP}.log"
-readonly ERROR_LOG="$HOME/setup_errors_${LOG_TIMESTAMP}.log"
 readonly STATE_DIR="$HOME/.cache/wayland-setup"
+readonly LOG="$STATE_DIR/setup_complete_${LOG_TIMESTAMP}.log"
+readonly ERROR_LOG="$STATE_DIR/setup_errors_${LOG_TIMESTAMP}.log"
 readonly STATE_FILE="$STATE_DIR/setup_state.json"
-readonly BACKUP_DIR="$HOME/Documents/wayland-configs-${BACKUP_TIMESTAMP}"
+readonly BACKUP_DIR="$STATE_DIR/wayland-configs-${BACKUP_TIMESTAMP}"
 
 COMPOSITOR_CHOICE=""
+
+mkdir -p "$STATE_DIR"
 
 log() {
 	echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $1" | tee -a "$LOG"
@@ -77,8 +79,7 @@ setup_directories() {
     fi
     
     log "Creating directories..."
-    
-    mkdir -p "$STATE_DIR" "$BACKUP_DIR"
+	
     mkdir -p "$HOME"/{Desktop,Documents,Downloads,Music,Videos,OneDrive}
     mkdir -p "$HOME/Pictures/Wallpapers"
     mkdir -p "$HOME"/{AI-Projects,AI-Models,Creative-Projects,Blender-Projects}
@@ -320,7 +321,7 @@ install_aur_package() {
     
     log "Installing AUR: $pkg (timeout: ${timeout_seconds}s)"
     
-    if timeout "$timeout_seconds" yay -S --noconfirm "$pkg" 2>&1 | tee -a "$LOG"; then
+    if timeout "$timeout_seconds" yay -S --noconfirm --answerdiff=None "$pkg" 2>&1 | tee -a "$LOG"; then
         log "✓ Successfully installed AUR package: $pkg"
         return 0
     else
@@ -620,7 +621,7 @@ setup_meta_packages() {
 		
 		## 4.2 FFmpeg & Codecs
 		"ffmpeg"                        # Complete multimedia solution
-		"lib32-ffmpeg"                  # 32-bit FFmpeg - Cho gaming/Proton
+		"lib32-pipewire-jack"           # 32-bit FFmpeg - Cho gaming/Proton
 		"x264"                          # H.264 encoder
 		"x265"                          # HEVC encoder
 		
@@ -817,9 +818,8 @@ setup_meta_packages() {
 		## 12.4 Streaming & Recording
 		"obs-studio"                    # Streaming/recording software
 		"obs-vaapi"                     # VA-API plugin for OBS
-		"obs-nvfbc"                     # NVIDIA capture plugin
 		"obs-vkcapture"                 # Vulkan capture plugin
-		#"obs-websocket"                 # WebSocket plugin - REMOVED: installs obs-studio-browser which conflicts with obs-studio
+		#"obs-nvfbc-git"                 # WebSocket plugin - REMOVED: installs obs-studio-browser which conflicts with obs-studio
 		
 		# ==========================================================================
 		# PHASE 13: PUBLISHING & DOCUMENT TOOLS
@@ -930,7 +930,7 @@ setup_meta_packages() {
 		"fastfetch"                     # Fast system information
 		"nvtop"                         # NVIDIA GPU monitor
         "lm_sensors"                    # Hardware monitoring sensors
-        "zenmonitor"                    # AMD Ryzen monitor GUI
+        "zenmonitor3"                   # AMD Ryzen monitor GUI
         "corectrl"                      # AMD GPU/CPU control center
 		"iotop"                         # I/O monitor
 		"iftop"                         # Network monitor
