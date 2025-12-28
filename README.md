@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[🇬🇧 **English**](./README.md) | [🇻🇳 **Tiếng Việt**](./README_VI.md)
+[**English**](README.md) | [**Tiếng Việt**](README_VI.md)
 
 </div>
 
