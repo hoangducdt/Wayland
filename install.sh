@@ -107,7 +107,7 @@ setup_directories() {
         mkdir -p "$HOME/.config/hypr/hyprland"
         mkdir -p "$HOME/.config/hypr/scheme"
         mkdir -p "$HOME/.config/hypr/scripts"
-        mkdir -p "$HOME/.config/spicetify/Themes/caelestia"
+        mkdir -p "$HOME/.config/caelestia"
     fi
     
     mark_completed "directories"
@@ -455,14 +455,7 @@ setup_nvidia_optimization() {
     log "Checking driver status..."
     
     if ! pacman -Qi nvidia-utils &>/dev/null; then
-        error << "EROR"
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-NVIDIA driver NOT found!
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Please install via CachyOS installer or manually:
-  sudo pacman -S linux-cachyos-nvidia-open
-EROR
+        error "NVIDIA driver NOT found!..."
     fi
     
     log "✓ Driver found:"
@@ -1396,8 +1389,17 @@ EOF
     sudo systemctl enable cpupower-performance.service
     
     # Enable services
-    sudo systemctl enable irqbalance
-    sudo systemctl enable thermald
+    if systemctl list-unit-files | grep -q "^irqbalance.service"; then
+        sudo systemctl enable irqbalance
+    else
+        warn "irqbalance service not found, skipping"
+    fi
+
+    if systemctl list-unit-files | grep -q "^thermald.service"; then
+        sudo systemctl enable thermald
+    else
+        warn "thermald service not found, skipping"
+    fi
     
     # TLP configuration (balanced)
     if [ -f /etc/tlp.conf ]; then
@@ -1470,7 +1472,7 @@ setup_symlink(){
         return 0
     fi
     
-    log "Symlink filess..."
+    log "Symlink files..."
 
     local configs_dir="$HOME/.local/share/Wayland/Configs"
     
@@ -1480,10 +1482,37 @@ setup_symlink(){
     
     local CONFIGS_BACKUP_DIR=""
     
+    # Danh sách thư mục cần skip dựa trên compositor
+    local skip_dirs=()
+    if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
+        skip_dirs=(".config/hypr" ".config/caelestia")
+        log "ℹ Compositor: Niri - Skipping Hyprland configs"
+    elif [ "$COMPOSITOR_CHOICE" = "hyprland" ]; then
+        skip_dirs=(".config/niri" ".config/DankMaterialShell")
+        log "ℹ Compositor: Hyprland - Skipping Niri configs"
+    fi
+    
+    # Hàm kiểm tra xem path có nên skip không
+    should_skip() {
+        local check_path="$1"
+        for skip_pattern in "${skip_dirs[@]}"; do
+            if [[ "$check_path" == "$skip_pattern"* ]]; then
+                return 0  # Should skip
+            fi
+        done
+        return 1  # Should not skip
+    }
+    
     symlink_item() {
         local source="$1"
         local target="$2"
         local relative_path="$3"
+        
+        # Kiểm tra skip trước khi làm gì
+        if should_skip "$relative_path"; then
+            log "  ⊘ Skipped (compositor): $relative_path"
+            return 0
+        fi
         
         if [ -e "$target" ] || [ -L "$target" ]; then
             if [ -L "$target" ]; then
@@ -1531,6 +1560,12 @@ setup_symlink(){
         local item_name
         item_name=$(basename "$item")
         
+        # Kiểm tra skip ở top level
+        if should_skip "$item_name"; then
+            log "⊘ Skipping (compositor): $item_name"
+            continue
+        fi
+        
         log "Processing: $item_name"
         
         if [ -d "$item" ] && [ ! -L "$item" ]; then
@@ -1557,12 +1592,12 @@ setup_symlink(){
         
         if [ "$backup_count" -gt 0 ]; then
             log ""
-            log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            log "═══════════════════════════════════════════════════"
             log "✓ SAFETY BACKUP CREATED!"
             log "  Location: $CONFIGS_BACKUP_DIR"
             log "  Files backed up: $backup_count"
-            log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            warn "⚠ User configuration files have been backed up!"
+            log "═══════════════════════════════════════════════════"
+            warn "⚠  User configuration files have been backed up!"
         else
             rm -rf "$CONFIGS_BACKUP_DIR" 2>/dev/null || true
         fi
@@ -2030,14 +2065,13 @@ EOF
 }
 
 get_compositor_choice() {
-    # Check if already selected previously
     local saved_choice
     saved_choice=$(get_saved_compositor)
     
     if [ -n "$saved_choice" ]; then
         log "Previously selected compositor: $saved_choice"
         echo -e "${YELLOW}You have previously selected: ${MAGENTA}$saved_choice${NC}"
-        read -rp "Do you want to use the same choice? (Y/n): " use_saved
+        read -rp "Do you want to use the same choice? (Y/n): " use_saved < /dev/tty
         if [[ ! "$use_saved" =~ ^[Nn]$ ]]; then
             COMPOSITOR_CHOICE="$saved_choice"
             return 0
@@ -2047,7 +2081,7 @@ get_compositor_choice() {
     show_selection_menu
     
     while true; do
-        read -rp "$(echo -e "${CYAN}"Enter your choice [1-2]:"${NC}" )" choice
+        read -rp "$(echo -e "${CYAN}Enter your choice [1-2]: ${NC}")" choice < /dev/tty
         
         case $choice in
             1)
@@ -2078,10 +2112,10 @@ main() {
     get_compositor_choice
     show_banner
     init_state
+    clone_repo
     setup_directories
     handle_conflicts
     install_helper
-    clone_repo
     setup_system_update
     setup_meta_packages
     setup_symlink
@@ -2135,7 +2169,7 @@ COMPLETE
     echo "Backup: $BACKUP_DIR"
     echo ""
     
-    read -rp "Installation complete. Reboot now? (y/N): " response
+    read -rp "Installation complete. Reboot now? (y/N): " response < /dev/tty
     if [[ "$response" =~ ^[Yy]$ ]]; then
         log "Rebooting system..."
         sudo reboot
