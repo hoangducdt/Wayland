@@ -985,7 +985,8 @@ setup_meta_packages() {
 		"fcitx5-qt"                     # Qt5/Qt6 support
 		"fcitx5-gtk"                    # GTK support
 		"fcitx5-configtool"             # Configuration GUI
-		"fcitx5-bamboo-git"             # Vietnamese input method
+		#"fcitx5-bamboo-git"             # Vietnamese input method
+		"fcitx5-unikey"         	    # Vietnamese input method
 		
 		# ==========================================================================
 		# PHASE 25: WEB BROWSER & COMMUNICATION
