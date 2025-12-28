@@ -1,0 +1,794 @@
+version: '3.8'
+
+networks:
+  homelab:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  npm_data:
+  npm_ssl:
+  npm_db:
+  portainer_data:
+  grafana_data:
+  prometheus_data:
+  crowdsec_config:
+  crowdsec_data:
+  authelia_data:
+  netdata_config:
+  netdata_cache:
+  n8n_data:
+  redis_data:
+  postgres_data:
+  postgres_backup_data:
+  it-tools_data:
+  homarr_config:
+  homarr_icons:
+  homarr_data:
+  dozzle_data:
+  uptime-kuma_data:
+  open-webui_data:
+  comfyui_data:
+  sd-webui_data:
+  filebrowser_data:
+  snippet-box_data:
+  changedetection_data:
+  wetty_data:
+  duplicati_config:
+  duplicati_data:
+  paperless_data:
+  paperless_media:
+  paperless_export:
+  paperless_consume:
+  mariadb_data:
+  syncthing_data:
+
+services:
+  # ===== REVERSE PROXY & NETWORKING =====
+  
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.2
+    ports:
+      - "80:80"
+      - "443:443"
+      - "81:81"
+    environment:
+      - DB_SQLITE_FILE=/data/database.sqlite
+      - DISABLE_IPV6=true
+    volumes:
+      - npm_data:/data
+      - npm_ssl:/etc/letsencrypt
+    healthcheck:
+      test: ["CMD", "/bin/check-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  cloudflare-ddns:
+    image: oznu/cloudflare-ddns:latest
+    container_name: cloudflare-ddns
+    restart: unless-stopped
+    networks:
+      - homelab
+    environment:
+      - API_KEY=${CF_API_KEY}
+      - ZONE=${CF_ZONE}
+      - SUBDOMAIN=${CF_SUBDOMAIN:-@}
+      - PROXIED=${CF_PROXIED:-true}
+      - RRTYPE=A
+      - DELETE_ON_STOP=false
+      - INTERFACE=eth0
+      - CUSTOM_LOOKUP_CMD=
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== MANAGEMENT & MONITORING =====
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.3
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    networks:
+      - homelab
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=86400
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_REVIVE_STOPPED=false
+      - WATCHTOWER_NO_STARTUP_MESSAGE=false
+      - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL}
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: autoheal
+    restart: unless-stopped
+    networks:
+      - homelab
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=all
+      - AUTOHEAL_INTERVAL=60
+      - AUTOHEAL_START_PERIOD=300
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10
+      - TZ=Asia/Ho_Chi_Minh
+
+  diun:
+    image: crazymax/diun:latest
+    container_name: diun
+    restart: unless-stopped
+    networks:
+      - homelab
+    command: serve
+    volumes:
+      - ./diun:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - LOG_LEVEL=info
+      - LOG_JSON=false
+      - DIUN_WATCH_WORKERS=20
+      - DIUN_WATCH_SCHEDULE=0 */6 * * *
+      - DIUN_PROVIDERS_DOCKER=true
+      - DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.4
+    ports:
+      - "8888:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - dozzle_data:/data
+    environment:
+      - DOZZLE_LEVEL=info
+      - DOZZLE_TAILSIZE=500
+      - DOZZLE_FILTER=status=running
+      - DOZZLE_BASE=/
+      - TZ=Asia/Ho_Chi_Minh
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== OBSERVABILITY =====
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.5
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - TZ=Asia/Ho_Chi_Minh
+    user: "472"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.6
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    user: "65534"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  netdata:
+    image: netdata/netdata:latest
+    container_name: netdata
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.7
+    ports:
+      - "19999:19999"
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdata_config:/etc/netdata
+      - netdata_cache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - NETDATA_CLAIM_TOKEN=${NETDATA_CLAIM_TOKEN}
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=${NETDATA_CLAIM_ROOMS}
+      - DOCKER_HOST=/var/run/docker.sock
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.8
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime-kuma_data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    healthcheck:
+      test: ["CMD-SHELL", "node extra/healthcheck.js"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== SECURITY =====
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.9
+    ports:
+      - "8080:8080"
+      - "6060:6060"
+    volumes:
+      - crowdsec_config:/etc/crowdsec
+      - crowdsec_data:/var/lib/crowdsec/data
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - COLLECTIONS=crowdsecurity/linux crowdsecurity/nginx crowdsecurity/http-cve
+      - GID=1000
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  authelia:
+    image: authelia/authelia:latest
+    container_name: authelia
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "9091:9091"
+    volumes:
+      - authelia_data:/config
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - AUTHELIA_JWT_SECRET=${AUTHELIA_JWT_SECRET}
+      - AUTHELIA_SESSION_SECRET=${AUTHELIA_SESSION_SECRET}
+      - AUTHELIA_STORAGE_ENCRYPTION_KEY=${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+    depends_on:
+      - redis
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== DATABASES =====
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.11
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.12
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - TZ=Asia/Ho_Chi_Minh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.13
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-homelab}
+      - MYSQL_USER=${MYSQL_USER:-homelab}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - TZ=Asia/Ho_Chi_Minh
+    command: '--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW'
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== AUTOMATION & WORKFLOWS =====
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.14
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+      - GENERIC_TIMEZONE=Asia/Ho_Chi_Minh
+      - TZ=Asia/Ho_Chi_Minh
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME:-n8n}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER:-postgres}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== UTILITIES & TOOLS =====
+
+  it-tools:
+    image: corentinth/it-tools:latest
+    container_name: it-tools
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.15
+    ports:
+      - "8282:80"
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  homarr:
+    image: ghcr.io/ajnart/homarr:latest
+    container_name: homarr
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.16
+    ports:
+      - "7575:7575"
+    volumes:
+      - homarr_config:/app/data/configs
+      - homarr_icons:/app/public/icons
+      - homarr_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - BASE_URL=${HOMARR_BASE_URL:-http://localhost:7575}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: filebrowser
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.17
+    ports:
+      - "8081:80"
+    volumes:
+      - filebrowser_data:/database
+      - ${FILEBROWSER_ROOT:-/home}:/srv
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - FB_NOAUTH=false
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  snippet-box:
+    image: pawelmalak/snippet-box:latest
+    container_name: snippet-box
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.18
+    ports:
+      - "5000:5000"
+    volumes:
+      - snippet-box_data:/app/data
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  changedetection:
+    image: ghcr.io/dgtlmoon/changedetection.io:latest
+    container_name: changedetection
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.19
+    ports:
+      - "5050:5000"
+    volumes:
+      - changedetection_data:/datastore
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - BASE_URL=${CHANGEDETECTION_BASE_URL}
+      - PLAYWRIGHT_DRIVER_URL=ws://playwright-chrome:3000
+    depends_on:
+      - playwright-chrome
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  playwright-chrome:
+    image: browserless/chrome:latest
+    container_name: playwright-chrome
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.20
+    ports:
+      - "3003:3000"
+    environment:
+      - SCREEN_WIDTH=1920
+      - SCREEN_HEIGHT=1080
+      - SCREEN_DEPTH=16
+      - ENABLE_DEBUGGER=false
+      - PREBOOT_CHROME=true
+      - CONNECTION_TIMEOUT=60000
+      - MAX_CONCURRENT_SESSIONS=10
+      - CHROME_REFRESH_TIME=3600000
+      - DEFAULT_BLOCK_ADS=true
+      - DEFAULT_STEALTH=true
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  wetty:
+    image: wettyoss/wetty:latest
+    container_name: wetty
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.21
+    ports:
+      - "3002:3000"
+    volumes:
+      - wetty_data:/home
+    environment:
+      - SSHHOST=${WETTY_SSH_HOST:-localhost}
+      - SSHPORT=${WETTY_SSH_PORT:-22}
+      - SSHUSER=${WETTY_SSH_USER}
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== AI & ML =====
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.22
+    ports:
+      - "3030:8080"
+    volumes:
+      - open-webui_data:/app/backend/data
+    environment:
+      - WEBUI_AUTH=true
+      - WEBUI_SECRET_KEY=${OPEN_WEBUI_SECRET_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TZ=Asia/Ho_Chi_Minh
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  comfyui:
+    image: yanwk/comfyui-boot:latest
+    container_name: comfyui
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.23
+    ports:
+      - "8188:8188"
+    volumes:
+      - comfyui_data:/root
+    environment:
+      - CLI_ARGS=--listen 0.0.0.0 --port 8188
+      - TZ=Asia/Ho_Chi_Minh
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  stable-diffusion-webui:
+    image: atinoda/text-generation-webui:default-nightly
+    container_name: stable-diffusion-webui
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.24
+    ports:
+      - "7860:7860"
+    volumes:
+      - sd-webui_data:/app
+    environment:
+      - CLI_ARGS=--listen --xformers --enable-insecure-extension-access
+      - TZ=Asia/Ho_Chi_Minh
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== BACKUP & SYNC =====
+
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local:latest
+    container_name: postgres-backup
+    restart: unless-stopped
+    networks:
+      - homelab
+    volumes:
+      - postgres_backup_data:/backups
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_EXTRA_OPTS=-Z6 --schema=public --blobs
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+      - HEALTHCHECK_PORT=8080
+      - TZ=Asia/Ho_Chi_Minh
+    depends_on:
+      - postgres
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.25
+    ports:
+      - "8200:8200"
+    volumes:
+      - duplicati_config:/config
+      - duplicati_data:/backups
+      - ${DUPLICATI_SOURCE:-/home}:/source:ro
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  syncthing:
+    image: syncthing/syncthing:latest
+    container_name: syncthing
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.26
+    ports:
+      - "8384:8384"
+      - "22000:22000/tcp"
+      - "22000:22000/udp"
+      - "21027:21027/udp"
+    volumes:
+      - syncthing_data:/var/syncthing
+      - ${SYNCTHING_SYNC:-/home}:/sync
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Ho_Chi_Minh
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ===== DOCUMENT MANAGEMENT =====
+
+  paperless-ngx:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless-ngx
+    restart: unless-stopped
+    networks:
+      homelab:
+        ipv4_address: 172.20.0.27
+    ports:
+      - "8010:8000"
+    volumes:
+      - paperless_data:/usr/src/paperless/data
+      - paperless_media:/usr/src/paperless/media
+      - paperless_export:/usr/src/paperless/export
+      - paperless_consume:/usr/src/paperless/consume
+    environment:
+      - PAPERLESS_REDIS=redis://redis:6379
+      - PAPERLESS_DBHOST=postgres
+      - PAPERLESS_DBNAME=${PAPERLESS_DB_NAME:-paperless}
+      - PAPERLESS_DBUSER=${POSTGRES_USER:-postgres}
+      - PAPERLESS_DBPASS=${POSTGRES_PASSWORD}
+      - PAPERLESS_SECRET_KEY=${PAPERLESS_SECRET_KEY}
+      - PAPERLESS_URL=${PAPERLESS_URL:-http://localhost:8010}
+      - PAPERLESS_TIME_ZONE=Asia/Ho_Chi_Minh
+      - PAPERLESS_OCR_LANGUAGE=vie+eng
+      - PAPERLESS_OCR_MODE=skip
+      - PAPERLESS_ADMIN_USER=${PAPERLESS_ADMIN_USER:-admin}
+      - PAPERLESS_ADMIN_PASSWORD=${PAPERLESS_ADMIN_PASSWORD}
+      - PAPERLESS_ADMIN_MAIL=${PAPERLESS_ADMIN_MAIL}
+      - USERMAP_UID=1000
+      - USERMAP_GID=1000
+      - TZ=Asia/Ho_Chi_Minh
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
