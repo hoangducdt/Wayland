@@ -552,7 +552,7 @@ setup_meta_packages() {
 		"p7zip"                         # 7-Zip compression
 		"unrar"                         # RAR extraction
         "ark"                           # KDE archive manager - GUI for all formats
-		"thunar-archive-plugin"			#The Thunar Archive Plugin allows you to create and extract archive files using the file context menus in the Thunar file manager.
+		#"thunar-archive-plugin"			#The Thunar Archive Plugin allows you to create and extract archive files using the file context menus in the Thunar file manager.
 		"matugen"                       # A material you color generation tool with templates
 		"cava"                          # Console audio visualizer
         "qt6-multimedia"                # Qt6 multimedia for system sounds
@@ -895,7 +895,10 @@ setup_meta_packages() {
 		# PHASE 17: FILE MANAGER & THUMBNAILS
 		# ==========================================================================
 		
-		"thunar"                        # Lightweight file manager
+		#"thunar"                        # Lightweight file manager
+		"gettext"						# GNU internationalization library
+		"nautilus-python"				# Python bindings for the Nautilus Extension API
+		"nautilus-open-any-terminal"	# context-menu entry for opening other terminal in nautilus
 		"tumbler"                       # Thumbnail generator
 		"ffmpegthumbnailer"             # Video thumbnail generator
 		"libgsf"                        # Structured file library
@@ -1018,6 +1021,8 @@ setup_meta_packages() {
 	
     # Enable NetworkManager
     sudo systemctl enable NetworkManager
+	
+	gsettings set com.github.stunkymonkey.nautilus-open-any-terminal terminal 'kitty'
     
     mark_completed "base_packages"
     log "✓ Base packages installed"
