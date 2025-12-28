@@ -201,7 +201,7 @@ window-rule {
 }
 
 window-rule {
-    match app-id="thunar|org.kde.dolphin|org.kde.ark"
+    match app-id="nautilus|thunar|org.kde.dolphin|org.kde.ark"
     opacity 0.80
     draw-border-with-background false
 }
@@ -267,7 +267,7 @@ binds {
     Mod+W { spawn "microsoft-edge-stable"; }
     Mod+C { spawn "codium"; }
     Mod+B { spawn "rider"; }
-    Mod+E { spawn "thunar"; }
+    Mod+E { spawn "nautilus"; }
     Mod+Alt+E { spawn "nemo"; }
     Mod+G { spawn "github-desktop"; }
     Ctrl+Alt+Escape { spawn "qps"; }
