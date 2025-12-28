@@ -124,7 +124,7 @@
   "networkPreference": "ethernet",
   "vpnLastConnected": "",
   "iconTheme": "Numix-Circle",
-  "launcherLogoMode": "apps",
+  "launcherLogoMode": "os",
   "launcherLogoCustomPath": "",
   "launcherLogoColorOverride": "",
   "launcherLogoColorInvertOnMode": false,
@@ -288,6 +288,10 @@
         },
         {
           "id": "controlCenterButton",
+          "enabled": true
+        },
+        {
+          "id": "displayManager",
           "enabled": true
         }
       ],
