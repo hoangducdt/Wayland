@@ -723,7 +723,7 @@ setup_meta_packages() {
 		"python-accelerate"             # Training acceleration library
 		
 		## 8.3 Local AI Runtime
-		#"ollama-cuda"                   # Local LLM inference with CUDA
+		"ollama"                   # Local LLM inference with CUDA
 		
 		# ==========================================================================
 		# PHASE 9: GAMING STACK
@@ -1264,9 +1264,6 @@ setup_ai_ml() {
     fi
     
     ai_info "Installing AI/ML stack (CUDA RTX 3060)..."
-
-    # Install Ollama
-    curl -fsSL https://ollama.com/install.sh | sh
 
     # Create ollama user
     sudo useradd -r -s /bin/false -U -m -d /usr/share/ollama ollama 2>/dev/null || true
