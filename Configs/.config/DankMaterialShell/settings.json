@@ -263,6 +263,10 @@
           "enabled": true
         },
         {
+          "id": "grimblast",
+          "enabled": true
+        },
+        {
           "id": "colorPicker",
           "enabled": true
         },
@@ -275,6 +279,14 @@
           "enabled": true
         },
         {
+          "id": "network_speed_monitor",
+          "enabled": true
+        },
+        {
+          "id": "displayManager",
+          "enabled": true
+        },
+        {
           "id": "notificationButton",
           "enabled": true
         },
@@ -283,15 +295,7 @@
           "enabled": true
         },
         {
-          "id": "network_speed_monitor",
-          "enabled": true
-        },
-        {
           "id": "controlCenterButton",
-          "enabled": true
-        },
-        {
-          "id": "displayManager",
           "enabled": true
         }
       ],

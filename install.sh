@@ -884,7 +884,6 @@ setup_meta_packages() {
 		"numix-circle-icon-theme-git"   # Numix-Circle | Numix Circle icon theme
 		"qt5ct-kde"                     # Qt5 configuration tool
 		"qt6ct-kde"                     # Qt6 configuration tool
-        "nwg-look"						# GTK settings editor adapted to work on wlroots-based compositors
         "accountsservice"               # D-Bus interface for user account query and manipulatio
 		
 		## 16.2 Authentication
@@ -1981,6 +1980,7 @@ setup_hyprland() {
 		"hyprland"                      # Dynamic tiling Wayland compositor
 		"uwsm"                          # Wayland session manager
 		"xdg-desktop-portal-hyprland"   # Hyprland-specific portal
+        "nwg-look"						# GTK settings editor adapted to work on wlroots-based compositors
     )
 
     install_packages "${hyprland_pkgs[@]}"
