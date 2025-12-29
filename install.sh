@@ -1914,6 +1914,9 @@ setup_niri() {
 
     install_packages "${niri_pkgs[@]}"
 
+    xdg-mime default org.gnome.Nautilus.desktop inode/directory
+    update-desktop-database ~/.local/share/applications
+
     mark_completed "niri"
     log "✓ Niri installed and configured"
 }
