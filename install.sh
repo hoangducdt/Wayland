@@ -1093,7 +1093,7 @@ setup_meta_packages() {
     # Enable NetworkManager
     sudo systemctl enable NetworkManager
 	
-	gsettings set com.github.stunkymonkey.nautilus-open-any-terminal terminal 'kitty'
+	#gsettings set com.github.stunkymonkey.nautilus-open-any-terminal terminal 'kitty'
     
     mark_completed "base_packages"
     log "✓ Base packages installed"
