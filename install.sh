@@ -20,6 +20,7 @@ readonly STATE_FILE="$STATE_DIR/setup_state.json"
 readonly BACKUP_DIR="$STATE_DIR/wayland-configs-${BACKUP_TIMESTAMP}"
 
 COMPOSITOR_CHOICE=""
+SHELL_CHOICE=""
 
 mkdir -p "$STATE_DIR"
 
@@ -103,13 +104,19 @@ setup_directories() {
     sudo mkdir -p "/usr/lib/asf/www"
 
     if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
-        mkdir -p "$HOME/.config/DankMaterialShell"
+        if [ "$SHELL_CHOICE" = "dms" ]; then
+            mkdir -p "$HOME/.config/DankMaterialShell"
+        fi
         mkdir -p "$HOME/.config/niri"
     elif [ "$COMPOSITOR_CHOICE" = "hyprland" ]; then
         mkdir -p "$HOME/.config/hypr/hyprland"
         mkdir -p "$HOME/.config/hypr/scheme"
         mkdir -p "$HOME/.config/hypr/scripts"
-        mkdir -p "$HOME/.config/caelestia"
+        if [ "$SHELL_CHOICE" = "caelestia" ]; then
+            mkdir -p "$HOME/.config/caelestia"
+        elif [ "$SHELL_CHOICE" = "axshell" ]; then
+            mkdir -p "$HOME/.config/Ax-Shell"
+        fi
     fi
     
     mark_completed "directories"
@@ -147,6 +154,21 @@ except Exception as e:
 " 2>/dev/null || true
 }
 
+save_shell_choice() {
+    local choice="$1"
+    python3 -c "
+import json
+try:
+    with open('$STATE_FILE', 'r') as f:
+        state = json.load(f)
+    state['shell'] = '$choice'
+    with open('$STATE_FILE', 'w') as f:
+        json.dump(state, f, indent=2)
+except Exception as e:
+    print(f'Warning: Could not save shell choice: {e}')
+" 2>/dev/null || true
+}
+
 get_saved_compositor() {
     python3 -c "
 import json
@@ -154,6 +176,18 @@ try:
     with open('$STATE_FILE', 'r') as f:
         state = json.load(f)
     print(state.get('compositor', ''))
+except:
+    print('')
+" 2>/dev/null || echo ""
+}
+
+get_saved_shell() {
+    python3 -c "
+import json
+try:
+    with open('$STATE_FILE', 'r') as f:
+        state = json.load(f)
+    print(state.get('shell', ''))
 except:
     print('')
 " 2>/dev/null || echo ""
@@ -208,7 +242,7 @@ show_banner() {
     clear
     echo -e "${MAGENTA}"
     
-    if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
+    if [ "$COMPOSITOR_CHOICE" = "niri" ] && [ "$SHELL_CHOICE" = "dms" ]; then
         cat << "EOF"
 ╔════════════════════════════════════════════════════════════════════════════════════════════════╗
 ║ ▀████    ███                                                 ▀█████████▄             █         ║
@@ -227,6 +261,44 @@ show_banner() {
 ║   • Optimizations: Performance adjustments, Vietnamese input methods...                        ║
 ╚════════════════════════════════════════════════════════════════════════════════════════════════╝
 EOF
+    elif [ "$COMPOSITOR_CHOICE" = "hyprland" ] && [ "$SHELL_CHOICE" = "caelestia" ]; then
+        cat << "EOF"
+╔════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ▀████    ███                                                 ▀█████████▄             █         ║
+║   ███    ███                 ▀▀▀▀                              ███    ███          █           ║
+║   ███    ███    ▄██████▄  ▀███████▄  ▀████████▄   ▄██████▄     ███    ███ ███   ███▀ ▄██████▄  ║
+║  ▄███▄▄▄▄███▄▄ ███    ███       ▀███  ███    ███ ███    ███   ▄███▄▄▄ ███ ███   ███ ███    ███ ║
+║ ▀▀███▀▀▀▀███▀  ███    ███  ▄████████  ███    ███ ███    ███  ▀▀███▀▀▀ ███ ███   ███ ███        ║
+║   ███    ███   ███    ███ ███    ███  ███    ███ ███    ███    ███    ███ ███   ███ ███        ║
+║   ███    ███   ███    ███ ███    ███  ███    ███ ███    ███    ███    ███ ███   ███ ███    ███ ║
+║   ███    ███    ▀██████▀   ▀████████▄ ███    ███  ▀████████  ▄█████████▀   ▀█████▀   ▀██████▀  ║
+║                                                        ▄███                                    ║
+║                                                 ▄████████▀                                     ║
+║   Hyprland + Caelestia Installer - Optimized For CachyOS                                       ║
+║   • Target System: CachyOS + Hyprland + Caelestia                                              ║
+║   • Hardware: ROG STRIX B550-XE GAMING WIFI | Ryzen 7 5800X | RTX 3060 12GB                    ║
+║   • Optimizations: Performance adjustments, Vietnamese input methods...                        ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════╝
+EOF
+    elif [ "$COMPOSITOR_CHOICE" = "hyprland" ] && [ "$SHELL_CHOICE" = "axshell" ]; then
+        cat << "EOF"
+╔════════════════════════════════════════════════════════════════════════════════════════════════╗
+║ ▀████    ███                                                 ▀█████████▄             █         ║
+║   ███    ███                 ▀▀▀▀                              ███    ███          █           ║
+║   ███    ███    ▄██████▄  ▀███████▄  ▀████████▄   ▄██████▄     ███    ███ ███   ███▀ ▄██████▄  ║
+║  ▄███▄▄▄▄███▄▄ ███    ███       ▀███  ███    ███ ███    ███   ▄███▄▄▄ ███ ███   ███ ███    ███ ║
+║ ▀▀███▀▀▀▀███▀  ███    ███  ▄████████  ███    ███ ███    ███  ▀▀███▀▀▀ ███ ███   ███ ███        ║
+║   ███    ███   ███    ███ ███    ███  ███    ███ ███    ███    ███    ███ ███   ███ ███        ║
+║   ███    ███   ███    ███ ███    ███  ███    ███ ███    ███    ███    ███ ███   ███ ███    ███ ║
+║   ███    ███    ▀██████▀   ▀████████▄ ███    ███  ▀████████  ▄█████████▀   ▀█████▀   ▀██████▀  ║
+║                                                        ▄███                                    ║
+║                                                 ▄████████▀                                     ║
+║   Hyprland + AxShell Installer - Optimized For CachyOS                                         ║
+║   • Target System: CachyOS + Hyprland + AxShell                                                ║
+║   • Hardware: ROG STRIX B550-XE GAMING WIFI | Ryzen 7 5800X | RTX 3060 12GB                    ║
+║   • Optimizations: Performance adjustments, Vietnamese input methods...                        ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════╝
+EOF
     else
         cat << "EOF"
 ╔════════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -240,8 +312,8 @@ EOF
 ║   ███    ███    ▀██████▀   ▀████████▄ ███    ███  ▀████████  ▄█████████▀   ▀█████▀   ▀██████▀  ║
 ║                                                        ▄███                                    ║
 ║                                                 ▄████████▀                                     ║
-║   Caelestia Installer - Optimized For CachyOS                                                  ║
-║   • Target System: CachyOS + Hyprland + Caelestia                                              ║
+║   Wayland Installer - Optimized For CachyOS                                                    ║
+║   • Target System: CachyOS + Wayland Compositor                                                ║
 ║   • Hardware: ROG STRIX B550-XE GAMING WIFI | Ryzen 7 5800X | RTX 3060 12GB                    ║
 ║   • Optimizations: Performance adjustments, Vietnamese input methods...                        ║
 ╚════════════════════════════════════════════════════════════════════════════════════════════════╝
@@ -2029,9 +2101,33 @@ setup_caelestia() {
     log "✓ caelestia installed"
 }
 
+setup_ax_shell() {
+    if [ "$(is_completed 'AxShell')" = "yes" ]; then
+        log "✓ AxShell already installed"
+        return 0
+    fi
+    
+    log "Installing AxShell configuration..."
+    
+    if [ -d "$HOME/.config/Ax-Shell/.git" ]; then
+        log "AxShell already exists, pulling latest..."
+        cd "$HOME/.config/Ax-Shell" || error "Failed to cd to Ax-Shell directory"
+        git pull || warn "Failed to pull updates"
+    else
+        git clone https://github.com/Axenide/Ax-Shell.git ~/.config/Ax-Shell || error "Failed to clone AxShell"
+    fi
+    
+    # Start AxShell with uwsm
+    log "Starting AxShell with uwsm..."
+    uwsm -- app python ~/.config/Ax-Shell/main.py > /dev/null 2>&1 & disown
+    
+    mark_completed "AxShell"
+    log "✓ AxShell installed"
+}
+
 # ===== MAIN =====
 
-show_selection_menu() {
+show_compositor_menu() {
     clear
     echo -e "${CYAN}"
     cat << "EOF"
@@ -2055,17 +2151,83 @@ EOF
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════════════════════${NC}"
     echo ""
     
-    echo -e "${GREEN}   [1]${NC} ${MAGENTA}Niri${NC} + ${CYAN}DankMaterialShell (DMS)${NC}"
+    echo -e "${GREEN}   [1]${NC} ${MAGENTA}Niri${NC}"
     echo -e "       ${BLUE}▸${NC} Scrollable-tiling Wayland compositor"
     echo -e "       ${BLUE}▸${NC} Modern, smooth scrolling interface"
     echo -e "       ${BLUE}▸${NC} Perfect for productivity workflows"
     echo ""
     
-    echo -e "${GREEN}   [2]${NC} ${MAGENTA}Hyprland${NC} + ${CYAN}Caelestia${NC}"
+    echo -e "${GREEN}   [2]${NC} ${MAGENTA}Hyprland${NC}"
     echo -e "       ${BLUE}▸${NC} Dynamic tiling Wayland compositor"
     echo -e "       ${BLUE}▸${NC} Eye-candy animations and effects"
     echo -e "       ${BLUE}▸${NC} Highly customizable experience"
     echo ""
+    
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════════════════════${NC}"
+    echo ""
+}
+
+show_shell_menu() {
+    clear
+    echo -e "${CYAN}"
+    cat << "EOF"
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║              ███████╗██╗  ██╗███████╗██╗     ██╗                              ║
+║              ██╔════╝██║  ██║██╔════╝██║     ██║                              ║
+║              ███████╗███████║█████╗  ██║     ██║                              ║
+║              ╚════██║██╔══██║██╔══╝  ██║     ██║                              ║
+║              ███████║██║  ██║███████╗███████╗███████╗                         ║
+║              ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝                         ║
+║                                                                               ║
+║                       SHELL SELECTION WIZARD                                  ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+EOF
+    echo -e "${NC}"
+    
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════════════════════${NC}"
+    
+    if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
+        echo -e "${YELLOW}   Select shell for Niri:${NC}"
+        echo -e "${BLUE}═══════════════════════════════════════════════════════════════════════════════${NC}"
+        echo ""
+        
+        echo -e "${GREEN}   [1]${NC} ${CYAN}DankMaterialShell (DMS)${NC}"
+        echo -e "       ${BLUE}▸${NC} Material Design inspired shell"
+        echo -e "       ${BLUE}▸${NC} Smooth animations and modern UI"
+        echo -e "       ${BLUE}▸${NC} Perfect integration with Niri"
+        echo ""
+        
+        echo -e "${GREEN}   [2]${NC} ${CYAN}No Shell (Niri Only)${NC}"
+        echo -e "       ${BLUE}▸${NC} Minimal setup with just Niri"
+        echo -e "       ${BLUE}▸${NC} Configure your own shell later"
+        echo -e "       ${BLUE}▸${NC} Maximum flexibility"
+        echo ""
+        
+    else  # hyprland
+        echo -e "${YELLOW}   Select shell for Hyprland:${NC}"
+        echo -e "${BLUE}═══════════════════════════════════════════════════════════════════════════════${NC}"
+        echo ""
+        
+        echo -e "${GREEN}   [1]${NC} ${CYAN}Caelestia${NC}"
+        echo -e "       ${BLUE}▸${NC} Modern, customizable shell"
+        echo -e "       ${BLUE}▸${NC} Beautiful animations and effects"
+        echo -e "       ${BLUE}▸${NC} Optimized for Hyprland"
+        echo ""
+        
+        echo -e "${GREEN}   [2]${NC} ${CYAN}AxShell${NC}"
+        echo -e "       ${BLUE}▸${NC} Lightweight Python-based shell"
+        echo -e "       ${BLUE}▸${NC} Minimalist design and performance"
+        echo -e "       ${BLUE}▸${NC} Easy to customize"
+        echo ""
+        
+        echo -e "${GREEN}   [3]${NC} ${CYAN}No Shell (Hyprland Only)${NC}"
+        echo -e "       ${BLUE}▸${NC} Minimal setup with just Hyprland"
+        echo -e "       ${BLUE}▸${NC} Configure your own shell later"
+        echo -e "       ${BLUE}▸${NC} Maximum flexibility"
+        echo ""
+    fi
     
     echo -e "${BLUE}═══════════════════════════════════════════════════════════════════════════════${NC}"
     echo ""
@@ -2077,7 +2239,7 @@ get_compositor_choice() {
     
     if [ -n "$saved_choice" ]; then
         log "Previously selected compositor: $saved_choice"
-        echo -e "${YELLOW}You have previously selected: ${MAGENTA}$saved_choice${NC}"
+        echo -e "${YELLOW}You have previously selected compositor: ${MAGENTA}$saved_choice${NC}"
         read -rp "Do you want to use the same choice? (Y/n): " use_saved < /dev/tty
         if [[ ! "$use_saved" =~ ^[Nn]$ ]]; then
             COMPOSITOR_CHOICE="$saved_choice"
@@ -2085,7 +2247,7 @@ get_compositor_choice() {
         fi
     fi
     
-    show_selection_menu
+    show_compositor_menu
     
     while true; do
         read -rp "$(echo -e "${CYAN}Enter your choice [1-2]: ${NC}")" choice < /dev/tty
@@ -2093,12 +2255,12 @@ get_compositor_choice() {
         case $choice in
             1)
                 COMPOSITOR_CHOICE="niri"
-                log "Selected: Niri + DankMaterialShell"
+                log "Selected: Niri"
                 break
                 ;;
             2)
                 COMPOSITOR_CHOICE="hyprland"
-                log "Selected: Hyprland + Caelestia"
+                log "Selected: Hyprland"
                 break
                 ;;
             *)
@@ -2111,12 +2273,83 @@ get_compositor_choice() {
     
     echo ""
     echo -e "${GREEN}✓ Compositor selected: ${MAGENTA}$COMPOSITOR_CHOICE${NC}"
+    sleep 1
+}
+
+get_shell_choice() {
+    local saved_choice
+    saved_choice=$(get_saved_shell)
+    
+    if [ -n "$saved_choice" ]; then
+        log "Previously selected shell: $saved_choice"
+        echo -e "${YELLOW}You have previously selected shell: ${CYAN}$saved_choice${NC}"
+        read -rp "Do you want to use the same choice? (Y/n): " use_saved < /dev/tty
+        if [[ ! "$use_saved" =~ ^[Nn]$ ]]; then
+            SHELL_CHOICE="$saved_choice"
+            return 0
+        fi
+    fi
+    
+    show_shell_menu
+    
+    while true; do
+        if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
+            read -rp "$(echo -e "${CYAN}Enter your choice [1-2]: ${NC}")" choice < /dev/tty
+        else
+            read -rp "$(echo -e "${CYAN}Enter your choice [1-3]: ${NC}")" choice < /dev/tty
+        fi
+        
+        case $choice in
+            1)
+                if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
+                    SHELL_CHOICE="dms"
+                    log "Selected: DankMaterialShell"
+                else
+                    SHELL_CHOICE="caelestia"
+                    log "Selected: Caelestia"
+                fi
+                break
+                ;;
+            2)
+                if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
+                    SHELL_CHOICE="none"
+                    log "Selected: No Shell"
+                else
+                    SHELL_CHOICE="axshell"
+                    log "Selected: AxShell"
+                fi
+                break
+                ;;
+            3)
+                if [ "$COMPOSITOR_CHOICE" = "hyprland" ]; then
+                    SHELL_CHOICE="none"
+                    log "Selected: No Shell"
+                    break
+                else
+                    echo -e "${RED}Invalid choice. Please enter 1 or 2.${NC}"
+                fi
+                ;;
+            *)
+                if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
+                    echo -e "${RED}Invalid choice. Please enter 1 or 2.${NC}"
+                else
+                    echo -e "${RED}Invalid choice. Please enter 1, 2, or 3.${NC}"
+                fi
+                ;;
+        esac
+    done
+    
+    save_shell_choice "$SHELL_CHOICE"
+    
+    echo ""
+    echo -e "${GREEN}✓ Shell selected: ${CYAN}$SHELL_CHOICE${NC}"
     echo -e "${YELLOW}Starting installation in 3 seconds...${NC}"
     sleep 3
 }
 
 main() {
     get_compositor_choice
+    get_shell_choice
     show_banner
     init_state
     clone_repo
@@ -2143,10 +2376,16 @@ main() {
     
     if [ "$COMPOSITOR_CHOICE" = "niri" ]; then
         setup_niri
-        setup_dms
+        if [ "$SHELL_CHOICE" = "dms" ]; then
+            setup_dms
+        fi
     elif [ "$COMPOSITOR_CHOICE" = "hyprland" ]; then
         setup_hyprland
-        setup_caelestia
+        if [ "$SHELL_CHOICE" = "caelestia" ]; then
+            setup_caelestia
+        elif [ "$SHELL_CHOICE" = "axshell" ]; then
+            setup_ax_shell
+        fi
     fi
     
     verify_services
@@ -2172,6 +2411,7 @@ COMPLETE
     echo -e "${NC}"
     echo ""
     echo -e "${CYAN}Compositor installed: ${MAGENTA}$COMPOSITOR_CHOICE${NC}"
+    echo -e "${CYAN}Shell installed: ${CYAN}$SHELL_CHOICE${NC}"
     echo "Logs: $LOG"
     echo "Backup: $BACKUP_DIR"
     echo ""
